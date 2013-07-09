@@ -1,0 +1,216 @@
+#!/usr/bin/env node
+
+var flatiron = require('flatiron'),
+    app = flatiron.app,
+    eyes = require('eyes'),
+    haibu = require('haibu'),
+    nconf = require('nconf'),
+    fs = require('fs');
+
+var cwd = process.cwd();
+/*
+ * Configuration
+ */
+nconf.file(__dirname + '/../http-proxy/routes.json');
+nconf.load();
+/*
+nconf.set('router:snipboards.staging.testing', '127.0.0.1:3645' );
+nconf.save(function (err) {
+    if (err) {
+      console.error(err.message);
+      return;
+    }
+    console.log('Configuration saved successfully.');
+  });
+
+return;
+*/
+var package = require(cwd + '/package.json');
+var config = require(cwd + '/server.config.json')
+
+//var newVersion =  parseInt(config.version) +1 ;
+
+//var routes = require('../http-proxy/routes.json');
+//console.log(routes.router['www.snipboards.com']);
+//console.log(routes);
+//return;
+/*var myOptions = {
+    name: 'Avian',
+    dessert: 'cake',
+    flavor: 'vanilla',
+    beverage: 'coffee'
+  };
+
+  var data = JSON.stringify(myOptions);
+
+  fs.writeFile('./config.json', data, function (err) {
+    if (err) {
+      console.log('There has been an error saving your configuration data.');
+      console.log(err.message);
+      return;
+    }
+    console.log('Configuration saved successfully.')
+  });
+*/
+
+var application = {
+    "user": config.user,
+    "name": config.name + 'v' + config.version,
+    "domain": config.domain,
+    "repository": {
+        "type": "local",
+        "directory": cwd
+    },
+   "scripts": package.scripts
+}
+
+
+
+console.log(application) 
+
+// Create a new client for communicating with the haibu server
+var client = new haibu.drone.Client({
+  host: 'localhost',
+  port: 9002
+});
+
+// A basic package.json for a node.js application on haibu
+/*var application = {
+   "user": "hounddog",
+   "name": "staging",
+   "domain": "staging.snipboards.info",
+   "repository": {
+     "type": "local",
+     "directory": "local/sites/snipboards/"
+   },
+   "scripts": {
+     "start": "app.js"
+   }
+};*/
+
+app.use(flatiron.plugins.cli, {
+  dir: __dirname,
+  usage: [
+    'This is a CLI tool for managing haibu',
+    'Commands:'
+  ],
+
+  argv: {
+    name: {
+      alias: 'n',
+      description: 'Application name to configure.',
+      string: true,
+    },
+    help: {
+      alias: 'h',
+      description: 'You\'re looking at it!',
+      boolean: true
+    }
+  }
+});
+
+app.cmd('start', function() {
+  client.start(application, function (err, result) {
+    if (err) {
+      console.log('Error spawning app: ' + application.name);
+      return eyes.inspect(err);
+    }
+
+    console.log('Successfully spawned app:');
+    eyes.inspect(result);
+  });
+})
+
+app.cmd('stop', function() {
+  var app = {
+    "user": config.user,
+    "name": config.name + 'v' + package.version 
+  }
+  client.stop('normal' , function(err, result){
+    if (err) {
+      console.log('Error stopping app: ' + application.name);
+      return eyes.inspect(err);
+    }
+
+    console.log('Successfully stopped app:');
+    eyes.inspect(result);    
+  });
+});
+
+app.cmd('cleanall', function(){
+  client.cleanAll(function(err, result){
+    if (err) {
+      console.log('Err cleaning apps ');
+      return eyes.inspect(err);
+    }
+
+    console.log('Successfully cleaned apps');
+    eyes.inspect(result);
+
+  });
+});
+
+
+app.cmd('update', function() {
+   var newVersion =  parseInt(config.version) +1 ;
+   application.name = config.name + 'v' + newVersion,
+
+   client.start(application, function (err, result) {
+    if (err) {
+      console.log('Err updating app: ' + application.name);
+      return eyes.inspect(err);
+    }
+ 
+    
+    console.log('Successfully updated app:');
+    eyes.inspect(result);
+ 
+    nconf.set('router:'+ application.domain, '127.0.0.1:' + result.drone.port);    
+    nconf.save(function (err, data) {
+      if (err) {
+        console.error(err.message);
+        return;
+      }
+      console.log('Configuration saved successfully.');
+    });
+ 
+    client.stop(config.name + 'v' + config.version , function(err, result){
+      if (err) {
+        console.log('Error stopping app: ' + application.name);
+        return eyes.inspect(err);
+      }
+
+      console.log('Successfully stopped app:');
+      eyes.inspect(result);
+
+      config.version = newVersion;
+      var data = JSON.stringify(config);
+      
+      fs.writeFile(cwd + '/server.config.json', data, function (err) {
+        if (err) {
+          console.log('There has been an error saving your configuration data.');
+          console.log(err.message);
+          return;
+        }
+        console.log('Configuration saved successfully.')
+      });
+
+    });
+
+    console.log(result.drone);
+  });
+
+  /*client.update(application, function (err, result) {
+    if (err) {
+      console.log('Error updating app: ' + application.name);
+      return eyes.inspect(err);
+    }
+
+    console.log('Successfully updated app:');
+    eyes.inspect(result);
+    console.log(result);
+  });*/
+})
+
+
+app.start();

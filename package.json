@@ -1,0 +1,28 @@
+{
+  "name": "haibu-wrap",
+  "description": "wrapper for haibu",
+  "version": "0.0.1",
+  "author": {
+    "name": "Martin Shwalbe",
+    "email": "martin.shwalbe@gmail.com"
+  },
+  "maintainers": [
+    {
+      "name": "martin",
+      "email": "martin.shwalbe@gmail.com"
+    }
+  ],
+  "keywords": [
+    "cloud computing",
+    "automated deployment",
+    "platform-as-a-service"
+  ],
+  "dependencies": {
+    "haibu-api": "git://github.com/Hounddog/haibu-api#patches",
+    "haibu": "0.10.1",
+    "http-proxy": "*"
+  },
+  "engines": {
+    "node": ">= 0.8.0"
+  }
+}
